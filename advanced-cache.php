@@ -374,6 +374,50 @@ HTML;
 		}
 		$this->cache['output'] .= "\n$debug_html";
 	}
+
+	/**
+	 * Determines whether a redirect should actucally occur.
+	 *
+	 * In some instances redirect_canonical() will rebuild the query string which can change
+	 * its formatting by removing trailing = signs and URL encoding keys. This can result in
+	 * a redirect that will generate the same Batcache key. Once the redirect is cached then
+	 * Batcache will start to redirect endlessly. This filter prevents that behaviour.
+	 *
+	 * @param string $redirect_url The URL being redirected to.
+	 * @param string $requested_url The original URL requested.
+	 * @return string The filtered redirect target URL.
+	 */
+	function maybe_redirect( $redirect_url, $requested_url ) {
+		// If there is no query string then perform the redirect.
+		if ( empty( $this->query ) ) {
+			return $redirect_url;
+		}
+
+		// If the the base URLs are different then perform the redirect.
+		if ( substr( $redirect_url, 0, strpos( $redirect_url, '?' ) ) !== substr( $requested_url, 0, strpos( $requested_url, '?' ) ) ) {
+			return $redirect_url;
+		}
+
+		// Get the query string being redirected to as an array.
+		$redirect_query_string = parse_url( $redirect_url, PHP_URL_QUERY );
+		parse_str( $redirect_query_string, $redirect_query );
+		$redirect_query = array_diff_key( $redirect_query, array_flip( $this->ignored_query_string_params ) );
+
+		// Avoid modifying the class property directly.
+		$current_query = $this->query;
+
+		// Ensure query keys are sorted the same way.
+		ksort( $redirect_query );
+		ksort( $current_query );
+
+		// If the parsed query strings do not match then perform the redirect.
+		if ( serialize( $redirect_query ) !== serialize( $current_query ) ) {
+			return $redirect_url;
+		}
+
+		// Prevent unecessary redirect from occuring and getting cached.
+		return $requested_url;
+	}
 }
 
 global $batcache;
@@ -698,9 +742,11 @@ global $wp_filter;
 if ( function_exists( 'add_filter' ) ) {
 	add_filter( 'status_header', array( $batcache, 'status_header' ), 10, 2 );
 	add_filter( 'wp_redirect_status', array( $batcache, 'redirect_status' ), 10, 2 );
+	add_filter( 'redirect_canonical', array( $batcache, 'maybe_redirect' ), 10, 2 );
 } else {
 	$wp_filter['status_header'][10]['batcache'] = array( 'function' => array( $batcache, 'status_header' ), 'accepted_args' => 2 );
 	$wp_filter['wp_redirect_status'][10]['batcache'] = array( 'function' => array( $batcache, 'redirect_status' ), 'accepted_args' => 2 );
+	$wp_filter['redirect_canonical'][10]['batcache'] = array( 'function' => array( $batcache, 'maybe_redirect' ), 'accepted_args' => 2 );
 }
 
 
