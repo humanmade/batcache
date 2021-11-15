@@ -558,6 +558,7 @@ $batcache->generate_keys();
 
 // Get the batcache
 $batcache->cache = wp_cache_get($batcache->key, $batcache->group);
+$is_cached = is_array( $batcache->cache ) && isset( $batcache->cache['time'] );
 
 // Are we only caching frequently-requested pages?
 if ( isset( $batcache->cache['version'] ) && $batcache->cache['version'] != $batcache->url_version ) {
