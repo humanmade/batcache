@@ -559,6 +559,7 @@ $batcache->generate_keys();
 
 // Get the batcache
 $batcache->cache = wp_cache_get($batcache->key, $batcache->group);
+$is_cached = is_array($batcache->cache) && isset($batcache->cache['time']);
 
 // Are we only caching frequently-requested pages?
 if ( isset( $batcache->cache['version'] ) && $batcache->cache['version'] != $batcache->url_version ) {
@@ -574,7 +575,7 @@ if ( isset( $batcache->cache['version'] ) && $batcache->cache['version'] != $bat
 		$batcache->requests = wp_cache_incr($batcache->req_key, 1, $batcache->group);
 
 		if ( $batcache->requests >= $batcache->times &&
-			time() >= $batcache->cache['time'] + $batcache->cache['max_age']
+			( ! $is_cached || time() >= $batcache->cache['time'] + $batcache->cache['max_age'] )
 		) {
 			wp_cache_delete( $batcache->req_key, $batcache->group );
 			$batcache->do = true;
