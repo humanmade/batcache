@@ -65,6 +65,7 @@ class batcache {
 	var $cache_redirects = false; // Set true to enable redirect caching.
 	var $redirect_status = false; // This is set to the response code during a redirect.
 	var $redirect_location = false; // This is set to the redirect location.
+	var $cache_no_content = false; // Set to true to enable caching of pages with no contnet, such as HEAD requests.
 
 	var $use_stale        = true; // Is it ok to return stale cached response when updating the cache?
 	var $uncached_headers = array('transfer-encoding'); // These headers will never be cached. Apply strtolower.
@@ -193,7 +194,7 @@ class batcache {
 		// Do not batcache blank pages unless they are HTTP redirects
 		$output = trim($output);
 
-		if ( $output === '' && (!$this->redirect_status || !$this->redirect_location) ) {
+		if ( $this->cache_no_content === false && $output === '' && (!$this->redirect_status || !$this->redirect_location) ) {
 
 			if ( $this->cache_control ) {
 				header( 'Cache-Control: no-cache, must-revalidate, max-age=0' );
