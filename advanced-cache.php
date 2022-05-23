@@ -15,27 +15,13 @@ function batcache_cancel() {
 		$batcache->cancel = true;
 }
 
-// Variants can be set by functions which use early-set globals like $_SERVER to run simple tests.
-// Functions defined in WordPress, plugins, and themes are not available and MUST NOT be used.
-// Example: vary_cache_on_function('return preg_match("/feedburner/i", $_SERVER["HTTP_USER_AGENT"]);');
-//          This will cause batcache to cache a variant for requests from Feedburner.
-// Tips for writing $function:
-//  X_X  DO NOT use any functions from your theme or plugins. Those files have not been included. Fatal error.
-//  X_X  DO NOT use any WordPress functions except is_admin() and is_multisite(). Fatal error.
-//  X_X  DO NOT include or require files from anywhere without consulting expensive professionals first. Fatal error.
-//  X_X  DO NOT use $wpdb, $blog_id, $current_user, etc. These have not been initialized.
-//  ^_^  DO understand how create_function works. This is how your code is used: create_function('', $function);
-//  ^_^  DO remember to return something. The return value determines the cache variant.
+/**
+ * This functionality uses `create_function()`. That function is deprecated in php 8.0 and removed in PHP 8.1.
+ * There isn't a viable replacement for this Batcache functionality that works well, including with third party edge caching.
+ * The functionality has been removed.
+ */
 function vary_cache_on_function($function) {
-	global $batcache;
-
-	if ( preg_match('/include|require|echo|(?<!s)print|dump|export|open|sock|unlink|`|eval/i', $function) )
-		die('Illegal word in variant determiner.');
-
-	if ( !preg_match('/\$_/', $function) )
-		die('Variant determiner should refer to at least one $_ variable.');
-
-	$batcache->add_variant($function);
+	error_log( 'Notice: The vary_cache_on_function functionality has been removed.' );
 }
 
 class batcache {
@@ -327,8 +313,7 @@ class batcache {
 	}
 
 	function add_variant($function) {
-		$key = md5($function);
-		$this->vary[$key] = $function;
+		error_log( 'Notice: The vary_cache_on_function functionality has been removed.' ); //
 	}
 
 	function do_variants($dimensions = false) {
@@ -338,14 +323,6 @@ class batcache {
 		else
 			wp_cache_set("{$this->url_key}_vary", $dimensions, $this->group, $this->max_age + 10);
 
-		if ( is_array($dimensions) ) {
-			ksort($dimensions);
-			foreach ( $dimensions as $key => $function ) {
-				$fun = create_function('', $function);
-				$value = $fun();
-				$this->keys[$key] = $value;
-			}
-		}
 	}
 
 	function generate_keys() {
