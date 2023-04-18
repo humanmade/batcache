@@ -457,9 +457,9 @@ if ((isset($_SERVER['REQUEST_METHOD']) && !in_array($_SERVER['REQUEST_METHOD'], 
 }
 
 // Never batcache when cookies indicate a cache-exempt visitor.
-if ( is_array( $_COOKIE) && ! empty( $_COOKIE ) ) {
-	foreach ( array_keys( $_COOKIE ) as $batcache->cookie ) {
-		if ( ! in_array( $batcache->cookie, $batcache->noskip_cookies ) && ( substr( $batcache->cookie, 0, 2 ) == 'wp' || substr( $batcache->cookie, 0, 9 ) == 'wordpress' || substr( $batcache->cookie, 0, 14 ) == 'comment_author' ) ) {
+if ( is_array( $_COOKIE ) && ! empty( $_COOKIE ) ) {
+	foreach ( array_keys( $_COOKIE ) as $batcache_cookie ) {
+		if ( ! in_array( $batcache_cookie, $batcache->noskip_cookies ) && ( substr( $batcache_cookie, 0, 2 ) == 'wp' || substr( $batcache_cookie, 0, 9 ) == 'wordpress' || substr( $batcache_cookie, 0, 14 ) == 'comment_author' ) ) {
 			batcache_stats( 'batcache', 'cookie_skip' );
 			if ( $batcache->cache_control ) {
 				header( 'Cache-Control: no-cache, must-revalidate, max-age=0' );
@@ -472,6 +472,8 @@ if ( is_array( $_COOKIE) && ! empty( $_COOKIE ) ) {
 			return;
 		}
 	}
+
+	unset( $batcache_cookie );
 }
 
 if ( ! function_exists( 'wp_cache_init' )  && ! include_once( WP_CONTENT_DIR . '/object-cache.php' ) ) {
