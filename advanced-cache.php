@@ -512,10 +512,6 @@ if ( include_once( 'plugins/searchterm-highlighter.php') && referrer_has_search_
 if ( $batcache->max_age < 1 )
 	return;
 
-// Make sure we can increment. If not, turn off the traffic sensor.
-if ( ! method_exists( $GLOBALS['wp_object_cache'], 'incr' ) )
-	$batcache->times = 0;
-
 // Necessary to prevent clients using cached version after login cookies set. If this is a problem, comment it out and remove all Last-Modified headers.
 header('Vary: Cookie, Origin', false);
 
