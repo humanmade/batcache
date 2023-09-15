@@ -487,16 +487,6 @@ if ( ! function_exists( 'wp_cache_init' )  && ! include_once( WP_CONTENT_DIR . '
 
 wp_cache_init(); // Note: wp-settings.php calls wp_cache_init() which clobbers the object made here.
 
-global $wp_object_cache;
-if ( ! is_object( $wp_object_cache ) ) {
-
-	if ( $batcache->add_hit_status_header ) {
-		header( 'X-Batcache: DOWN' );
-	}
-
-	return;
-}
-
 // Now that the defaults are set, you might want to use different settings under certain conditions.
 
 /* Example: if your documents have a mobile variant (a different document served by the same URL) you must tell batcache about the variance. Otherwise you might accidentally cache the mobile version and serve it to desktop users, or vice versa.
@@ -521,10 +511,6 @@ if ( include_once( 'plugins/searchterm-highlighter.php') && referrer_has_search_
 // Disabled
 if ( $batcache->max_age < 1 )
 	return;
-
-// Make sure we can increment. If not, turn off the traffic sensor.
-if ( ! method_exists( $GLOBALS['wp_object_cache'], 'incr' ) )
-	$batcache->times = 0;
 
 // Necessary to prevent clients using cached version after login cookies set. If this is a problem, comment it out and remove all Last-Modified headers.
 header('Vary: Cookie, Origin', false);
