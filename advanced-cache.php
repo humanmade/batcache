@@ -24,6 +24,7 @@ function vary_cache_on_function($function) {
 	error_log( 'Notice: The vary_cache_on_function functionality has been removed.' );
 }
 
+#[AllowDynamicProperties]
 class batcache {
 	// This is the base configuration. You can edit these variables or move them into your wp-config.php file.
 	var $max_age =  300; // Expire batcache items aged this many seconds (zero to disable batcache)
