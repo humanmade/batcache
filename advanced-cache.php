@@ -654,7 +654,19 @@ if ( isset( $batcache->cache['time'] ) && // We have cache
 		$max_age = ( $batcache->cache['max_age'] - time() + $batcache->cache['time'] );
 		$max_age = $max_age > 0 ? $max_age : $batcache->max_age_stale;
 		header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $batcache->cache['time'] ) . ' GMT', true );
-		header( 'Cache-Control: max-age=' . $max_age . ', must-revalidate', true );
+
+		if ( isset( $batcache->cache['headers']['Cache-Control'] ) ) {
+			// If a cache-control header exists in the cache, and it has a max-age set, dynamically update it to the remaining time on the cache.
+			if ( strpos( implode( ', ', $batcache->cache['headers']['Cache-Control'] ), 'max-age=' ) >= 0  ) {
+				$batcache->cache['headers']['Cache-Control'] = array_map( function ( string $header ) use ( $max_age ): string {
+					return preg_replace( '/max-age=([\d]+)/', 'max-age=' . $max_age, $header );
+				}, $batcache->cache['headers']['Cache-Control'] );
+			} else {
+				$batcache->cache['headers']['Cache-Control'] .= ', max-age=' . $max_age;
+			}
+		} else {
+			header( 'Cache-Control: max-age=' . $max_age . ', must-revalidate', true );
+		}
 	}
 
 	// Add some debug info just before </head>
