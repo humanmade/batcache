@@ -100,7 +100,19 @@ class batcache {
 		if ( $this->cache_redirects ) {
 			$this->redirect_status = $status;
 			$this->redirect_location = $location;
-			header( 'Cache-Control: max-age=' . $this->max_age . ', must-revalidate', true );
+
+			// Respect a Cache-Control header already sent by the application,
+			// only falling back to the default when none has been sent.
+			$has_cache_control = false;
+			foreach ( headers_list() as $header ) {
+				if ( stripos( $header, 'Cache-Control:' ) === 0 ) {
+					$has_cache_control = true;
+					break;
+				}
+			}
+			if ( ! $has_cache_control ) {
+				header( 'Cache-Control: max-age=' . $this->max_age . ', must-revalidate', true );
+			}
 			header_remove( 'Expires' );
 		}
 
@@ -274,6 +286,8 @@ class batcache {
 					// If the max-age has been set to zero, but we are caching a redirect, use the default max age.
 					if ( $max_age === 0 && $this->cache_redirects && $this->cache['redirect_location'] ) {
 						header( 'Cache-Control: max-age=' . $this->max_age . ', must-revalidate', true );
+						// Keep the cached copy of the header in sync with what was sent, so cache hits replay the same header.
+						$this->cache['headers'][ $header ] = array( 'max-age=' . $this->max_age . ', must-revalidate' );
 						continue;
 					}
 					$this->max_age = $max_age;
@@ -592,14 +606,26 @@ if ( isset( $batcache->cache['time'] ) && // We have cache
 		$location = $batcache->cache['redirect_location'];
 		// From vars.php
 		$is_IIS = (strpos($_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS') !== false || strpos($_SERVER['SERVER_SOFTWARE'], 'ExpressionDevServer') !== false);
-		$batcache->do_headers( $batcache->headers, $batcache->cache['headers'] );
-		// Use the batcache save time for Last-Modified so we can issue "304 Not Modified" but don't clobber a cached Last-Modified header.
-		if ( $batcache->cache_control && !isset($batcache->cache['headers']['Last-Modified'][0]) ) {
+		if ( $batcache->cache_control ) {
 			$max_age = ( $batcache->cache['max_age'] - time() + $batcache->cache['time'] );
 			$max_age = $max_age > 0 ? $max_age : $batcache->max_age_stale;
-			header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $batcache->cache['time'] ) . ' GMT', true );
-			header( 'Cache-Control: max-age=' . $max_age . ', must-revalidate', true );
+
+			// Use the batcache save time for Last-Modified so we can issue "304 Not Modified" but don't clobber a cached Last-Modified header.
+			if ( !isset($batcache->cache['headers']['Last-Modified'][0]) ) {
+				header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $batcache->cache['time'] ) . ' GMT', true );
+			}
+
+			if ( isset( $batcache->cache['headers']['Cache-Control'] ) ) {
+				// If a cache-control header exists in the cache, and it has a max-age set, dynamically update it to the remaining time on the cache.
+				$batcache->cache['headers']['Cache-Control'] = array_map( function ( string $header ) use ( $max_age ): string {
+					return preg_replace( '/max-age=([\d]+)/', 'max-age=' . $max_age, $header );
+				}, $batcache->cache['headers']['Cache-Control'] );
+			} else {
+				header( 'Cache-Control: max-age=' . $max_age . ', must-revalidate', true );
+			}
 		}
+
+		$batcache->do_headers( $batcache->headers, $batcache->cache['headers'] );
 
 		if ( $is_IIS ) {
 			header("Refresh: 0;url=$location");
